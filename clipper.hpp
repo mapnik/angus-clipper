@@ -61,6 +61,10 @@
 #include <cmath>
 #include <vector>
 #include <algorithm>
+#ifndef NO_MAPNIK
+#include <mapnik/config.hpp>
+#include <mapnik/geometry.hpp>
+#endif
 
 namespace ClipperLib {
 
@@ -77,14 +81,22 @@ enum PolyFillType { pftEvenOdd, pftNonZero, pftPositive, pftNegative };
   static cInt const loRange = 0x7FFF;
   static cInt const hiRange = 0x7FFF;
 #else
+#ifndef NO_MAPNIK
+  typedef std::int64_t cInt;
+  static cInt const loRange = 0x3FFFFFFF;
+  static cInt const hiRange = 0x3FFFFFFFFFFFFFFFLL;
+  typedef std::int64_t long64;     //used by Int128 class
+  typedef std::uint64_t ulong64;
+#else
   typedef signed long long cInt;
   static cInt const loRange = 0x3FFFFFFF;
   static cInt const hiRange = 0x3FFFFFFFFFFFFFFFLL;
   typedef signed long long long64;     //used by Int128 class
   typedef unsigned long long ulong64;
-
+#endif
 #endif
 
+#ifdef NO_MAPNIK
 struct IntPoint {
   cInt x;
   cInt y;
@@ -104,10 +116,18 @@ struct IntPoint {
     return a.x != b.x  || a.y != b.y; 
   }
 };
+#else
+typedef mapnik::geometry::point<cInt> IntPoint;
+#endif
 //------------------------------------------------------------------------------
 
+#ifdef NO_MAPNIK
 typedef std::vector< IntPoint > Path;
 typedef std::vector< Path > Paths;
+#else
+typedef mapnik::geometry::line_string<cInt> Path;
+typedef mapnik::geometry::multi_line_string<cInt> Paths;
+#endif
 
 inline Path& operator <<(Path& poly, const IntPoint& p) {poly.push_back(p); return poly;}
 inline Paths& operator <<(Paths& polys, const Path& p) {polys.push_back(p); return polys;}
@@ -440,7 +460,7 @@ struct IntersectNode {
 };
 
 struct LocalMinimum {
-  cInt          Y;
+  cInt          y;
   TEdge        *LeftBound;
   TEdge        *RightBound;
 };
